@@ -2,10 +2,13 @@ package com.ecommerce.project.service;
 
 import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.interfaces.ProductInterface;
+import com.ecommerce.project.model.Cart;
 import com.ecommerce.project.model.Category;
 import com.ecommerce.project.model.Product;
+import com.ecommerce.project.payload.CartDTO;
 import com.ecommerce.project.payload.ProductDTO;
 import com.ecommerce.project.payload.ProductResponse;
+import com.ecommerce.project.repositories.CartRepository;
 import com.ecommerce.project.repositories.CategoryRepository;
 import com.ecommerce.project.repositories.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +37,8 @@ public class ProductService implements ProductInterface {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
     private final FileService fileService;
+    private final CartRepository cartRepository;
+    private final CartService cartService;
 
     @Value("${project.image}")
     private String imageDefaultPath;
@@ -169,7 +174,20 @@ public class ProductService implements ProductInterface {
 
         // update product in cart
 
+        List<Cart> carts = cartRepository.findCartsByProductId(productId);
 
+        List<CartDTO> cartDTOS = carts.stream().map(cart -> {
+            CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
+            // get cart products and map to product dto
+            List<ProductDTO> products = cart.getCartItemList().stream()
+                    .map(p -> modelMapper.map(p.getProduct(), ProductDTO.class))
+                    .toList();
+
+            cartDTO.setProducts(products);
+            return cartDTO;
+        }).toList();
+
+        cartDTOS.forEach(cart -> cartService.updateProductInCarts(cart.getCartId(), productId));
 
         return modelMapper.map(savedProduct, ProductDTO.class);
     }
