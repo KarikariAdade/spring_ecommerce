@@ -198,6 +198,10 @@ public class ProductService implements ProductInterface {
         Product product = productRepository.findById(productId)
                 .orElseThrow( () -> new ResourceNotFoundException("Product", "productId", String.valueOf(productId)));
 
+        List<Cart> carts = cartRepository.findCartsByProductId(productId);
+
+        carts.forEach(cart -> cartService.deleteProductFromCart(cart.getCartId(), productId));
+
         productRepository.delete(product);
 
         return modelMapper.map(product, ProductDTO.class);
